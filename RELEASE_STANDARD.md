@@ -308,3 +308,47 @@ Implementation (identical in every app, as in Voquill):
   remove launchers left by any earlier ID (legacy-cleanup list).
 - Config and data directories are named by `<app>` (`~/.config/<app>`), not
   by `<id>`, so they survive an ID change.
+
+## 11. App Shell (tray, close and start-up)
+
+Apps that are meant to keep running in the background (Voquill, Rusty G6,
+SomeDrive; not Yambuck, which is opened on demand) share one window and tray
+behaviour, implemented as in Voquill's `src-tauri/src/app/tray/`.
+
+**Tray icon**
+- Linux: a StatusNotifierItem published with `ksni` (Tauri's libappindicator
+  tray reports no clicks), with `id()` = the app ID (section 10). Windows and
+  macOS: Tauri's `TrayIconBuilder`.
+- Left click opens the main window; right click shows the menu. The menu is
+  one ordered list (`TrayMenuItem::ALL`) both backends build from:
+  **Open <Product>**, any app-specific items, then **Quit**.
+- `is_tray_available()`: Linux checks for the `org.kde.StatusNotifierWatcher`
+  bus name (absent on stock GNOME without the AppIndicator extension);
+  Windows/macOS always true.
+
+**Closing and minimising**
+- Setting `close_to_tray` (default **on**), shown in Settings as "Close to
+  tray".
+- Every close request (title-bar button, Alt+F4, taskbar "Close window") goes
+  through one `close_main_window`: with `close_to_tray` on, the window is
+  *parked*; off, the app quits.
+- The window's minimise button calls `minimize_to_tray_or_taskbar`, which
+  parks the window.
+- Parking hides the window when a tray exists, otherwise minimises it to the
+  taskbar (so it is never unreachable) and the UI says so once.
+- Tray **Quit** and closing with `close_to_tray` off call one `quit()`, which
+  exits through `RunEvent::Exit`, where the app releases resources (and runs
+  any shutdown work, e.g. SomeDrive draining sync).
+
+**Start-up**
+- `tauri-plugin-single-instance`: a second launch (menu, desktop file,
+  autostart) hands its arguments to the running instance and exits; the
+  running instance shows its window unless that launch passed
+  `--start-hidden`.
+- `--start-hidden` (clap flag): start without showing the window. Autostart
+  registers the app with `--start-hidden`
+  (`tauri_plugin_autostart::Builder::new().app_name("<app>").arg("--start-hidden")`).
+  If no tray is available, the window is shown anyway so the app stays
+  reachable.
+- Unit tests: menu order (Open first, Quit last), menu id round-trip, and
+  `launch_shows_window` for plain, `--start-hidden` and unparsable arguments.
