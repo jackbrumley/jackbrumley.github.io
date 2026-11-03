@@ -50,7 +50,12 @@ At the very start of `main()`, before Tauri, GTK or any portal call
 - `WEBKIT_DISABLE_DMABUF_RENDERER=1` and `WEBKIT_DISABLE_GPU_SANDBOX=1`, which
   prevent WebKitGTK's blank window / `EGL_BAD_PARAMETER` crash on Arch-based
   distros (CachyOS, Manjaro) and some NVIDIA setups;
-- on a Wayland session, `GDK_BACKEND=wayland`.
+- `GDK_BACKEND=wayland` only when the session is Wayland
+  (`XDG_SESSION_TYPE=wayland`) **and** `WAYLAND_DISPLAY` is set, and never when
+  the user already set `GDK_BACKEND` (otherwise GTK fails to start where no
+  Wayland display is reachable).
+- An app that launches other programs (Yambuck) restores the variables it
+  overrode for those child processes.
 
 ## 3. Logging and Crashes
 
