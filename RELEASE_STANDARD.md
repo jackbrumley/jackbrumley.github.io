@@ -147,9 +147,9 @@ push. Dry run of all builds: `gh workflow run release.yml --ref dev`.
 
 | Platform | Variant | Command |
 |---|---|---|
-| Linux | System Install (default) | `curl -sf <site>/install.sh \| bash` |
-| Linux | AppImage | `curl -sf <site>/install.sh \| bash -s -- --appimage` |
-| Linux | Uninstall | `curl -sf <site>/uninstall.sh \| bash` |
+| Linux | System Install (default) | `curl --proto '=https' --tlsv1.2 -sSf <site>/install.sh \| bash` |
+| Linux | AppImage | `curl --proto '=https' --tlsv1.2 -sSf <site>/install.sh \| bash -s -- --appimage` |
+| Linux | Uninstall | `curl --proto '=https' --tlsv1.2 -sSf <site>/uninstall.sh \| bash` |
 | Windows | User Install (default) | `irm <site>/install.ps1 \| iex` |
 | Windows | System Wide | `irm <site>/install-system.ps1 \| iex` (Administrator) |
 | Windows | Uninstall | `irm <site>/uninstall.ps1 \| iex` |
@@ -207,7 +207,7 @@ command with a copy button, and a manual-download link to
   `bash -c` under `setsid`; Windows: `powershell.exe` with
   `DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP`), writing stdout/stderr to the
   update log, then exits the app ~600 ms later.
-  - Linux command: `curl -sf <site>/install.sh | bash`, plus `-s -- --appimage`
+  - Linux command: `curl --proto '=https' --tlsv1.2 -sSf <site>/install.sh | bash`, plus `-s -- --appimage`
     when running as an AppImage (`$APPIMAGE` set, or executable under
     `~/.local/bin`), so an AppImage install stays an AppImage install.
   - Windows: download `<site>/install.ps1` to `%TEMP%` and run it from the file
