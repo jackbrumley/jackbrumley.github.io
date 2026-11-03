@@ -6,21 +6,49 @@
   <title>Jack Brumley · Apps</title>
   <meta name="description" content="Free, open-source desktop apps built by Jack Brumley for Linux and Windows." />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" />
   <link rel="stylesheet" href="assets/style.css" />
 </head>
 <body>
-  <main class="page">
-    <header class="intro">
-      <h1>Jack Brumley</h1>
-      <p>Free, open-source desktop apps I've built. Pick one to install it.</p>
-    </header>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <p class="eyebrow">Jack Brumley</p>
+        <h1>Software I build<br />and give away.</h1>
+        <p class="lede">Free, open-source desktop apps for Linux and Windows. Pick one to install it.</p>
+      </div>
+      <svg class="hero-art" viewBox="0 0 420 360" aria-hidden="true">
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#6d6af5" stop-opacity="0.85" />
+            <stop offset="1" stop-color="#c43991" stop-opacity="0.15" />
+          </linearGradient>
+          <linearGradient id="g2" x1="1" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#e0559b" stop-opacity="0.75" />
+            <stop offset="1" stop-color="#6d6af5" stop-opacity="0.08" />
+          </linearGradient>
+          <linearGradient id="g3" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stop-color="#8b7bff" stop-opacity="0.05" />
+            <stop offset="1" stop-color="#8b7bff" stop-opacity="0.55" />
+          </linearGradient>
+        </defs>
+        <polygon points="40,70 230,10 230,300 40,250" fill="url(#g3)" />
+        <polygon points="150,60 330,120 330,350 150,300" fill="url(#g1)" />
+        <polygon points="230,10 410,80 410,250 230,300" fill="url(#g2)" />
+        <polyline points="40,70 230,10 410,80" fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1" />
+      </svg>
+    </div>
+  </header>
 
+  <main class="page">
     <section class="section">
       <h2 class="section-title">Production-ready apps</h2>
       <ul class="grid">
         <li>
-          <a class="card" href="https://voquill.org/">
-            <img src="assets/icons/voquill.png" alt="" width="72" height="72" />
+          <a class="card" href="https://voquill.org/" style="--app: #5865f2; --app-2: #c43991;">
+            <span class="tile"><img src="assets/icons/voquill.png" alt="" width="52" height="52" /></span>
             <span class="card-body">
               <span class="card-title">Voquill <span class="external" aria-label="opens voquill.org">↗</span></span>
               <span class="card-text">Offline push-to-talk dictation that runs entirely on your computer.</span>
@@ -29,8 +57,8 @@
           </a>
         </li>
         <li>
-          <a class="card" href="/rusty-g6/">
-            <img src="assets/icons/rusty-g6.png" alt="" width="72" height="72" />
+          <a class="card" href="/rusty-g6/" style="--app: #e5483f; --app-2: #ff8a3d;">
+            <span class="tile"><img src="assets/icons/rusty-g6.png" alt="" width="52" height="52" /></span>
             <span class="card-body">
               <span class="card-title">Rusty G6</span>
               <span class="card-text">Control panel for the Sound BlasterX G6 on Linux and Windows.</span>
@@ -46,8 +74,8 @@
       <p class="section-note">Early projects I'm still building. Expect rough edges.</p>
       <ul class="grid">
         <li>
-          <a class="card" href="https://github.com/jackbrumley/somedrive">
-            <img src="assets/icons/somedrive.svg" alt="" width="72" height="72" />
+          <a class="card" href="https://github.com/jackbrumley/somedrive" style="--app: #1677d2; --app-2: #22c1c3;">
+            <span class="tile"><img src="assets/icons/somedrive.svg" alt="" width="52" height="52" /></span>
             <span class="card-body">
               <span class="card-title">SomeDrive <span class="external" aria-label="opens GitHub">↗</span></span>
               <span class="card-text">Simple desktop client for Microsoft OneDrive sync on Linux.</span>
@@ -56,8 +84,8 @@
           </a>
         </li>
         <li>
-          <a class="card" href="https://yambuck.com/">
-            <img src="assets/icons/yambuck.svg" alt="" width="72" height="72" />
+          <a class="card" href="https://yambuck.com/" style="--app: #1f8f9c; --app-2: #5ce0d2;">
+            <span class="tile"><img src="assets/icons/yambuck.svg" alt="" width="52" height="52" /></span>
             <span class="card-body">
               <span class="card-title">Yambuck <span class="external" aria-label="opens yambuck.com">↗</span></span>
               <span class="card-text">One package format and one simple install flow for Linux apps, on any distro.</span>
@@ -69,6 +97,8 @@
     </section>
 
     <footer class="footer">
+      <span>© Jack Brumley</span>
+      <span aria-hidden="true">·</span>
       <a href="https://github.com/jackbrumley">GitHub</a>
     </footer>
   </main>
