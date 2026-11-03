@@ -9,12 +9,12 @@ only that app's **Variations** (section 9). Everything else is identical, so a
 change made in one app (a bug fix in `install.sh`, a better update dialog) is
 copied to the others.
 
-| App | Repo | Install site (`<site>`) | Platforms |
-|---|---|---|---|
-| Voquill | `jackbrumley/voquill` | `https://voquill.org` | Linux, Windows, macOS |
-| Rusty G6 | `jackbrumley/rusty-g6` | `https://brumley.info/rusty-g6` | Linux, Windows |
-| SomeDrive | `jackbrumley/somedrive` | `https://brumley.info/somedrive` | Linux |
-| Yambuck | `yambuck/yambuck` | `https://yambuck.com` | Linux |
+| App | Repo | Install site (`<site>`) | App ID (`<id>`, section 10) | Platforms |
+|---|---|---|---|---|
+| Voquill | `jackbrumley/voquill` | `https://voquill.org` | `org.voquill.voquill` | Linux, Windows, macOS |
+| Rusty G6 | `jackbrumley/rusty-g6` | `https://brumley.info/rusty-g6` | `info.brumley.rustyg6` | Linux, Windows |
+| SomeDrive | `jackbrumley/somedrive` | `https://brumley.info/somedrive` | `info.brumley.somedrive` | Linux |
+| Yambuck | `yambuck/yambuck` | `https://yambuck.com` | `com.yambuck.yambuck` | Linux |
 
 `<app>` below is the lowercase binary name (`voquill`, `rusty-g6`,
 `somedrive`, `yambuck`); `<APP>` is its environment-variable prefix
@@ -262,3 +262,49 @@ Each app documents its variations in its own `AGENTS.md`. Allowed kinds:
   it. SomeDrive must drain or pause in-progress sync and persist its state
   first, so an update never interrupts a transfer.
 - **Extra build dependencies** in the Containerfile and CI setup.
+
+## 10. App Identity
+
+Every app has one reverse-DNS **app ID** (`<id>`) used on every surface: the
+Tauri `identifier`, the Wayland `app_id` / GTK prgname, the desktop file name,
+the metainfo ID and any portal registration. Desktop environments and
+xdg-desktop-portal match a running window to its launcher by
+`<app_id>.desktop`; when they differ, the taskbar shows a generic icon and
+portal features (global shortcuts, background permission) misbehave.
+
+Rules (learned the hard way on Voquill):
+- Reverse-DNS on a domain you own (`org.voquill`, `info.brumley`,
+  `com.yambuck`), then the app name: `org.voquill.voquill`.
+- Lowercase letters and digits only in each segment: no hyphens (not valid
+  in every ID system), no underscores.
+- Never ends in `.desktop` (KDE's kglobalacceld treats such names as
+  desktop-file launch shortcuts and silently drops portal global shortcuts) or
+  `.app` (collides with macOS bundle names; Tauri warns).
+- Chosen once and never changed after release. Changing it moves the webview
+  data dir (`~/.local/share/<id>`) and Windows install identity, so renames
+  need a migration and a legacy-cleanup list in the installers.
+
+Implementation (identical in every app, as in Voquill):
+- `tauri.conf.json` `identifier` = `<id>`; `productName` = `<app>` (the
+  lowercase binary and package name). User-visible names come from the
+  window title and the desktop file's `Name=`.
+- `APP_ID` constant in Rust equal to `<id>`, with a unit test asserting it
+  equals the Tauri `identifier` and that `src-tauri/packaging/<id>.desktop`
+  exists. On Linux, call `gtk::glib::set_prgname(Some(APP_ID))` (and
+  `set_application_name`) at the very start of `main`, before any GTK or
+  portal use, so the Wayland `app_id` is `<id>`.
+- The real launcher is `src-tauri/packaging/<id>.desktop` (with
+  `StartupWMClass=<id>`), shipped via `bundle.linux.deb.files` /
+  `bundle.linux.rpm.files` to `/usr/share/applications/<id>.desktop`.
+  Tauri's bundler always generates a desktop file named after
+  `productName`; render it from `src-tauri/packaging/bundler-stub.desktop.hbs`
+  (`desktopTemplate`) with `Hidden=true` so it never shows as a second
+  launcher. The AppImage reuses that template, so
+  `bundle.linux.appimage.files` overwrites
+  `/usr/share/applications/<app>.desktop` with the real entry, and the build
+  checks the AppImage's top-level launcher isn't the hidden stub.
+- `install.sh` writes the AppImage user launcher as
+  `~/.local/share/applications/<id>.desktop`; `install.sh` and `uninstall.sh`
+  remove launchers left by any earlier ID (legacy-cleanup list).
+- Config and data directories are named by `<app>` (`~/.config/<app>`), not
+  by `<id>`, so they survive an ID change.
