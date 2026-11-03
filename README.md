@@ -14,3 +14,17 @@ and `install.sh` from its own `main:/docs` at `brumley.info/rusty-g6/`).
    description and platform tags.
 
 No build step: plain HTML and CSS.
+
+## Standards
+
+This repo is also the core reference for how every app is built and shipped:
+
+- [`APP_STANDARD.md`](APP_STANDARD.md): window and resize handles, Linux
+  start-up environment, logging and crashes, diagnostics UI, settings storage,
+  settings layout and shared UI, CI, repository conventions.
+- [`RELEASE_STANDARD.md`](RELEASE_STANDARD.md): versions and asset names,
+  branches, release workflow, installers, in-app updates, app identity, tray
+  and app shell.
+
+A new app starts from both; each app's `AGENTS.md` links here and lists only
+its own variations.

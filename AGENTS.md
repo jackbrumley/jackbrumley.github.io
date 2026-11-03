@@ -15,8 +15,9 @@
 Plain HTML and CSS, no build step. Pushing to `main` deploys via GitHub Pages.
 See `README.md` for adding an app card.
 
-## Release and Update Standard
+## Standards
 
-`RELEASE_STANDARD.md` is the shared release, install and update standard for
-every app (Voquill, Rusty G6, SomeDrive, Yambuck). Each app's `AGENTS.md`
-links here. Change it deliberately, and update the apps to match.
+`APP_STANDARD.md` (how apps are built) and `RELEASE_STANDARD.md` (how they are
+released, installed and updated) are the core reference for every app
+(Voquill, Rusty G6, SomeDrive, Yambuck, and new ones). Each app's `AGENTS.md`
+links here. Change them deliberately, and update the apps to match.

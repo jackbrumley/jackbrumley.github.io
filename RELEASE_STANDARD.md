@@ -1,7 +1,8 @@
 # Release and Update Standard
 
 One way to release, install and update every app: Voquill, Rusty G6, SomeDrive
-and Yambuck. Voquill is the reference implementation; when this document and
+and Yambuck. Its companion, [`APP_STANDARD.md`](APP_STANDARD.md), covers how
+the apps themselves are built. Voquill is the reference implementation; when this document and
 Voquill disagree, fix whichever is wrong so they agree again.
 
 Each app's `AGENTS.md` says "follow the Release and Update Standard" and lists
