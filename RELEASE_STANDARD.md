@@ -71,10 +71,17 @@ copied to the others.
 
 - Development happens on `dev`. Releases are tagged on `dev`.
 - `main` only moves by promotion (fast-forward to the release tag), so `main`
-  always equals the latest published release. Never commit to `main` directly.
+  always equals the latest published release (plus any site-only updates,
+  below). Never commit to `main` directly.
 - GitHub Pages serves the install site from `main:/docs`, so promotion is also
   what deploys installer changes. An installer change can't reach users before
   the release it was tested with.
+- **Site-only update:** when every commit between `main` and `dev` only touches
+  site pages under `docs/` (not the installers, nor any file the app or its
+  updater reads), `main` may fast-forward to `dev` without a release
+  (`git push origin dev:main`), when the maintainer asks. Check with
+  `git diff --name-only origin/main origin/dev` first. Anything else waits for
+  the next release.
 
 ## 4. Repository Layout (identical in every app)
 
