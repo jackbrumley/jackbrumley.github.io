@@ -77,8 +77,8 @@ copied to the others.
   what deploys installer changes. An installer change can't reach users before
   the release it was tested with.
 - **Site-only update:** when every commit between `main` and `dev` only touches
-  site pages under `docs/` (not the installers, nor any file the app or its
-  updater reads), `main` may fast-forward to `dev` without a release
+  site pages under `docs/` or Markdown documentation (`AGENTS.md`, `README.md`),
+  not the installers nor any file the app or its updater reads, `main` may fast-forward to `dev` without a release
   (`git push origin dev:main`), when the maintainer asks. Check with
   `git diff --name-only origin/main origin/dev` first. Anything else waits for
   the next release.
