@@ -136,9 +136,14 @@ body {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  /* Always two columns, so every card is the same width in every section. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
 }
+
+/* Cards in the same row match heights. */
+.grid > li { display: flex; }
+.grid > li > .card { flex: 1; }
 
 .card {
   --app: var(--accent);
