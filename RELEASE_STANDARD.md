@@ -14,7 +14,7 @@ copied to the others.
 |---|---|---|---|---|
 | Voquill | `jackbrumley/voquill` | `https://voquill.org` | `org.voquill.voquill` | Linux, Windows, macOS |
 | Rusty G6 | `jackbrumley/rusty-g6` | `https://brumley.info/rusty-g6` | `info.brumley.rustyg6` | Linux, Windows |
-| SomeDrive | `jackbrumley/somedrive` | `https://brumley.info/somedrive` | `info.brumley.somedrive` | Linux |
+| SomeDrive | `jackbrumley/somedrive` | `https://somedrive.org` | `info.brumley.somedrive` | Linux |
 | Yambuck | `yambuck/yambuck` | `https://yambuck.com` | `com.yambuck.yambuck` | Linux |
 
 `<app>` below is the lowercase binary name (`voquill`, `rusty-g6`,
