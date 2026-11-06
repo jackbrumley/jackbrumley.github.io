@@ -19,5 +19,5 @@ See `README.md` for adding an app card.
 
 `APP_STANDARD.md` (how apps are built) and `RELEASE_STANDARD.md` (how they are
 released, installed and updated) are the core reference for every app
-(Voquill, Rusty G6, SomeDrive, Yambuck, and new ones). Each app's `AGENTS.md`
+(Voquill, Rusty G6, SomeDrive, Yambuck, RawTap and new ones). Each app's `AGENTS.md`
 links here. Change them deliberately, and update the apps to match.

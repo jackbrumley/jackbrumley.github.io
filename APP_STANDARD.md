@@ -1,7 +1,7 @@
 # App Standard
 
-How every desktop app is built: Voquill, Rusty G6, SomeDrive, Yambuck, and
-anything new. It sits beside the
+How every desktop app is built: Voquill, Rusty G6, SomeDrive, Yambuck, RawTap
+and anything new. It sits beside the
 [Release and Update Standard](RELEASE_STANDARD.md), which covers releases,
 installers, in-app updates, app identity and the tray/app shell. Together they
 are the core reference: a new app starts from both, and each app's `AGENTS.md`
@@ -11,6 +11,12 @@ Voquill is the reference implementation unless a section names a better one.
 When an app and this document disagree, fix whichever is wrong so they agree.
 
 Stack assumed: Tauri 2, Rust backend, Preact + TypeScript + Vite frontend.
+
+**Terminal apps** (RawTap: Rust and ratatui, no webview) follow every section
+that doesn't need a window: sections 3 and 5, the Debug items of sections 4
+and 6 (in the app's own menu), 7 without the frontend checks, and 8. Sections
+1 and 2, the modal and toast rules, and the typecheck and lint commands don't
+apply. The panic hook restores the terminal before it logs.
 
 ---
 
@@ -59,14 +65,15 @@ At the very start of `main()`, before Tauri, GTK or any portal call
 
 ## 3. Logging and Crashes
 
-- One session log: `~/.config/<app>/debug/session.log` (Windows:
-  `%APPDATA%\<app>\debug\session.log`). At start-up the previous run's log is
-  renamed to `last-session.log`, so the run before a crash or restart is never
-  lost.
+- One session log: `<config>/debug/session.log`, where `<config>` is the app's
+  config folder (section 5). At start-up the previous run's log is renamed to
+  `last-session.log`, so the run before a crash or restart is never lost.
 - Header on every session: app name and version, build profile, executable
   path, OS / distro, architecture, desktop and session type (Wayland/X11).
 - Timestamps are RFC 3339 local time with milliseconds and offset, e.g.
   `2026-11-03T19:55:39.123+11:00`.
+- Line format: `[<timestamp>] LEVEL: message`, e.g.
+  `[2026-11-03T19:55:39.123+11:00] INFO: SESSION START`.
 - Levels via the `log` crate; the level is configurable in Settings → Debug.
 - **Panic hook:** installed first thing; writes the panic message, location
   and thread to the session log before the default hook runs.
@@ -86,8 +93,19 @@ Backend commands: `copy_session_log`, `open_session_log`, `open_log_folder`,
 
 ## 5. Settings Storage
 
-- Settings live in `~/.config/<app>/` as JSON (keep each app's existing file
-  name), owned by one module.
+- **One folder on every platform:** `~/.config/<app>/`, on Linux, Windows and
+  macOS alike (Windows: `%USERPROFILE%\.config\<app>\`; never `%APPDATA%`, so
+  nothing large roams with an enterprise profile). Linux honours
+  `XDG_CONFIG_HOME` (`dirs::config_dir()`); Windows and macOS use
+  `dirs::home_dir().join(".config")` (Voquill `src-tauri/src/paths.rs`).
+  Everything the app writes lives under it: settings, state, logs.
+- **Folder name** is `<app>`, the lowercase binary name, never the app ID, so
+  it survives an ID change. Before choosing a name, check that no other
+  well-known app uses `~/.config/<name>`; if one does, use `<app>-app`.
+  Current exception: Voquill uses `voquill-app`, because an unrelated app is
+  also called Voquill.
+- **Settings file:** `settings.json`, owned by one module. Other state goes
+  in its own named files beside it (e.g. `state.json`).
 - **Atomic writes:** write to a temp file in the same directory, `fsync`,
   then rename over the original. A crash mid-save can never leave a truncated
   file.
@@ -97,6 +115,9 @@ Backend commands: `copy_session_log`, `open_session_log`, `open_log_folder`,
   path and exit, rather than silently overwriting it.
 - New fields have serde defaults; renamed fields are handled by one
   `migrate_legacy_fields` step.
+- A moved folder or renamed file is migrated once at start-up, before the
+  session log opens: rename (copy as a fallback), log it, and never overwrite
+  a newer copy.
 
 ## 6. Settings Layout and Shared UI
 
@@ -113,7 +134,9 @@ Backend commands: `copy_session_log`, `open_session_log`, `open_log_folder`,
 ## 7. Continuous Integration
 
 `.github/workflows/ci.yml` on every push and pull request to `dev` and `main`,
-on each platform the app ships (Voquill: `ci.yml` + `.github/actions/setup-build`):
+on each platform the app ships (Voquill: `ci.yml` + `.github/actions/setup-build`),
+using `actions/checkout@v7`, `actions/setup-node@v7` and
+`actions/upload-artifact@v7`:
 - `npm run typecheck`, `npm run lint`, `npm run check:structure`;
 - `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`,
   `cargo test`;
@@ -129,6 +152,9 @@ carries a comment saying why.
   shims), the pre-submit checklist below, file size budget, common pitfalls —
   then the app's own architecture, platform notes and Variations from both
   standards. Never document commands that don't exist.
+- **Identity module:** the `APP_ID` constant (Release Standard §10) lives in
+  `src-tauri/src/app/identity.rs` (Yambuck: `support/identity.rs`, its own
+  layout), with its unit test.
 - **Pre-submit checklist** (run before every commit, all must pass with zero
   warnings): `npm run typecheck`, `npm run lint`, `npm run check:structure`,
   `cargo fmt --check`, `cargo clippy --all-targets -- -D warnings`,

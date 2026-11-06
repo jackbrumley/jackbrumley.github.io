@@ -1,7 +1,7 @@
 # Release and Update Standard
 
-One way to release, install and update every app: Voquill, Rusty G6, SomeDrive
-and Yambuck. Its companion, [`APP_STANDARD.md`](APP_STANDARD.md), covers how
+One way to release, install and update every app: Voquill, Rusty G6, SomeDrive,
+Yambuck and RawTap. Its companion, [`APP_STANDARD.md`](APP_STANDARD.md), covers how
 the apps themselves are built. Voquill is the reference implementation; when this document and
 Voquill disagree, fix whichever is wrong so they agree again.
 
@@ -16,10 +16,13 @@ copied to the others.
 | Rusty G6 | `jackbrumley/rusty-g6` | `https://brumley.info/rusty-g6` | `info.brumley.rustyg6` | Linux, Windows |
 | SomeDrive | `jackbrumley/somedrive` | `https://somedrive.org` | `info.brumley.somedrive` | Linux |
 | Yambuck | `yambuck/yambuck` | `https://yambuck.com` | `com.yambuck.yambuck` | Linux |
+| RawTap | `jackbrumley/rawtap` | `https://brumley.info/rawtap` | `info.brumley.rawtap` | Linux, Windows |
 
 `<app>` below is the lowercase binary name (`voquill`, `rusty-g6`,
-`somedrive`, `yambuck`); `<APP>` is its environment-variable prefix
-(`VOQUILL`, `RUSTY_G6`, `SOMEDRIVE`, `YAMBUCK`).
+`somedrive`, `yambuck`, `rawtap`); `<APP>` is its environment-variable prefix
+(`VOQUILL`, `RUSTY_G6`, `SOMEDRIVE`, `YAMBUCK`, `RAWTAP`). `<config>` is the
+app's config folder, `~/.config/<app>` on every platform (App Standard §5;
+Voquill: `~/.config/voquill-app`).
 
 ---
 
@@ -177,6 +180,7 @@ command with a copy button, and a manual-download link to
 | `--version vX.Y.Z` | Install a specific release instead of latest |
 | `--yes` | No confirmation prompt (automatic when stdin isn't a terminal) |
 | `--no-relaunch` | Don't start the app afterwards (default: start it) |
+| `--relaunch` | Start the app afterwards even when `<APP>_NO_RELAUNCH` is set |
 | `--insecure-skip-verify` | Skip checksum verification |
 | `-h`, `--help` | Usage |
 
@@ -197,8 +201,12 @@ command with a copy button, and a manual-download link to
 - Stop the running app, remove any install of the *other* mode that would
   shadow this one (a user AppImage shadowing a system package), install, then
   refresh desktop/icon/KDE menu caches.
-- Log every line to `~/.config/<app>/debug/update.log` (Windows:
-  `%APPDATA%\<app>\debug\update.log`) as well as the terminal.
+- Before installing a `.deb`, run `apt-get update` (a warning, not a failure,
+  if it fails) in the same root call as `apt-get install`, so a graphical
+  `pkexec` prompt asks once: a stale package list makes apt fail with exit
+  code 100 on the package's dependencies.
+- Log every line to `<config>/debug/update.log` (Windows:
+  `%USERPROFILE%\.config\<app>\debug\update.log`) as well as the terminal.
 - Exit non-zero on any failure. Never prompt when piped (`curl | bash`).
 - Relaunch the app at the end unless `--no-relaunch` or `<APP>_NO_RELAUNCH=1`.
 - Re-running is always safe: it is how updates work.
@@ -231,6 +239,21 @@ command with a copy button, and a manual-download link to
 - Unit tests: shell quoting of relaunch paths (bash and PowerShell), and that
   the update script starts with `set -o pipefail` and contains
   `--update-failed`.
+
+### Terminal apps (RawTap)
+
+The same contract, adapted to an app that runs inside a terminal, which a
+detached process can't relaunch into:
+- `rawtap update` and the menu's **Update now** leave the TUI, restore the
+  terminal and run the same install command in the foreground of the same
+  terminal, so its output is visible. On Windows the app exits first, so the
+  installer can replace the executable.
+- On success the installer relaunches the app in that terminal. On failure
+  the still-installed version starts with `--update-failed` and shows the
+  standard warning with the update log's path.
+- The update check runs in the background at start-up (failures only
+  logged); the start screen shows "Update available: A → B" and the menu has
+  **Check for Updates** with "Last checked: …".
 
 ### Frontend (`useUpdates` hook + update modal)
 
@@ -270,6 +293,10 @@ Each app documents its variations in its own `AGENTS.md`. Allowed kinds:
   it. SomeDrive must drain or pause in-progress sync and persist its state
   first, so an update never interrupts a transfer.
 - **Extra build dependencies** in the Containerfile and CI setup.
+- **Extra installer options**: e.g. Voquill's `--clean` (purge cached models
+  and data). An option kept only so commands from older shipped updaters keep
+  working (e.g. `--channel`) is accepted and ignored, with a comment, and
+  removed once no supported install uses it.
 
 ## 10. App Identity
 
@@ -281,16 +308,22 @@ xdg-desktop-portal match a running window to its launcher by
 portal features (global shortcuts, background permission) misbehave.
 
 Rules (learned the hard way on Voquill):
-- Reverse-DNS on a domain you own (`org.voquill`, `info.brumley`,
-  `com.yambuck`), then the app name: `org.voquill.voquill`.
+- Reverse-DNS on a domain you own, then the app name: the app's own domain
+  if it has one at first release (`org.voquill.voquill`,
+  `com.yambuck.yambuck`), otherwise `info.brumley.<app>`
+  (`info.brumley.rustyg6`, `info.brumley.somedrive`, `info.brumley.rawtap`).
+  An app that gets its own domain later keeps its ID.
 - Lowercase letters and digits only in each segment: no hyphens (not valid
   in every ID system), no underscores.
 - Never ends in `.desktop` (KDE's kglobalacceld treats such names as
   desktop-file launch shortcuts and silently drops portal global shortcuts) or
   `.app` (collides with macOS bundle names; Tauri warns).
-- Chosen once and never changed after release. Changing it moves the webview
-  data dir (`~/.local/share/<id>`) and Windows install identity, so renames
-  need a migration and a legacy-cleanup list in the installers.
+- Chosen once and never changed after release, even for consistency.
+  Changing it moves the webview data dir (`~/.local/share/<id>`) and the
+  Windows install identity, and loses what the system grants per ID, which no
+  update can move: macOS Microphone and Accessibility permissions and Linux
+  portal approvals such as global shortcuts. A forced rename needs a
+  migration and a legacy-cleanup list in the installers.
 
 Implementation (identical in every app, as in Voquill):
 - `tauri.conf.json` `identifier` = `<id>`; `productName` = `<app>` (the
