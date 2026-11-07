@@ -309,7 +309,21 @@ h2 {
   letter-spacing: -0.02em;
 }
 
-.features, .shots { margin-top: 64px; }
+.features, .shots, .about { margin-top: 64px; }
+
+/* A short story section: why the app exists. */
+.about p {
+  max-width: 70ch;
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 1.02rem;
+  line-height: 1.7;
+}
+
+.about .signature {
+  color: var(--text);
+  font-weight: 500;
+}
 
 .features ul {
   margin: 0;
