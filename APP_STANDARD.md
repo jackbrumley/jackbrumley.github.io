@@ -153,10 +153,11 @@ one shared design, served from `https://brumley.info/shared/v1/`:
   Test a shared change on one app page before pushing it: every page that
   loads the shared files picks it up within about ten minutes.
 
-RawTap, Rusty G6 and SomeDrive load the shared files. Voquill and Yambuck are
-multi-page Jekyll sites that self-host every asset (Voquill's `JEKYLL.md`:
-no third-party requests), so they keep local copies of the footer tiles and
-icons, updated by hand when `apps.js` changes.
+RawTap, Rusty G6 and SomeDrive load all of it. Voquill and Yambuck are
+multi-page Jekyll sites with their own stylesheets and self-hosted fonts;
+they load the footer (and Voquill the install widget) from the shared files.
+brumley.info counts as first-party: the shared files load no fonts and
+track nothing.
 
 ## 7. Continuous Integration
 
