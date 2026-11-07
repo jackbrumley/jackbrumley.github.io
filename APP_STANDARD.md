@@ -131,6 +131,33 @@ Backend commands: `copy_session_log`, `open_session_log`, `open_log_folder`,
 - Icon-only buttons always have an `aria-label`. Respect
   `prefers-reduced-motion`.
 
+## 6a. Install Page
+
+Each app's install page (`docs/index.html`, served from `main:/docs`) uses
+one shared design, served from `https://brumley.info/shared/v1/`:
+
+- `app-page.css`: the layout. The page sets only its colours, and every
+  tint, wash and glow is mixed from them:
+  `<style>:root { --app-accent: …; --app-accent-2: …; --app-accent-dark: …; }</style>`.
+- `install-widget.js`: the platform tabs, variants and copy button. The page
+  gives its commands as JSON in `<script type="application/json"
+  id="install-config">` (`{ platform: { variant: { label, command, hint,
+  note } } }`).
+- `apps.js` + `other-apps.js`: the "Other apps" footer, built from the one
+  list of apps into `<ul class="app-tiles" data-other-apps
+  data-current="<app>">`. **A new app is added once, in `apps.js`** (with its
+  icon in `icons/`), and appears on every page that loads the shared files.
+- The page keeps its own text, hero art, screenshots and footer links, and
+  its installers stay in its own `docs/` (deployed only by its release).
+- Shared files are fixed in place; a breaking change goes in `shared/v2/`.
+  Test a shared change on one app page before pushing it: every page that
+  loads the shared files picks it up within about ten minutes.
+
+RawTap, Rusty G6 and SomeDrive load the shared files. Voquill and Yambuck are
+multi-page Jekyll sites that self-host every asset (Voquill's `JEKYLL.md`:
+no third-party requests), so they keep local copies of the footer tiles and
+icons, updated by hand when `apps.js` changes.
+
 ## 7. Continuous Integration
 
 `.github/workflows/ci.yml` on every push and pull request to `dev` and `main`,
