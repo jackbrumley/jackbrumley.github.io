@@ -69,8 +69,11 @@
 
     codeBlock.textContent = v.command;
     hint.innerHTML = v.hint;
-    note.textContent = v.note;
-    note.style.display = v.note ? '' : 'none';
+    // A page without a note line (#install-note) just has no notes.
+    if (note) {
+      note.textContent = v.note || '';
+      note.style.display = v.note ? '' : 'none';
+    }
 
     var html = '';
     var keys = Object.keys(options);
