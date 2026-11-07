@@ -201,10 +201,17 @@ command with a copy button, and a manual-download link to
 - Stop the running app, remove any install of the *other* mode that would
   shadow this one (a user AppImage shadowing a system package), install, then
   refresh desktop/icon/KDE menu caches.
+- **One root call per install.** Piped through `curl | bash` (and from the
+  in-app updater) there is no terminal on stdin, so root goes through
+  `pkexec`, which remembers nothing: every separate root command is another
+  password prompt. Put all of an install's root work in one
+  `run_as_root bash -c '…'` (RawTap: the package install plus the
+  serial-port group change).
 - Before installing a `.deb`, run `apt-get update` (a warning, not a failure,
-  if it fails) in the same root call as `apt-get install`, so a graphical
-  `pkexec` prompt asks once: a stale package list makes apt fail with exit
-  code 100 on the package's dependencies.
+  if it fails) in that same root call: a stale package list makes apt fail
+  with exit code 100 on the package's dependencies. Make the download folder
+  readable (`chmod 0755` on the `mktemp -d` folder) so apt's `_apt` sandbox
+  user can read the `.deb`.
 - Log every line to `<config>/debug/update.log` (Windows:
   `%USERPROFILE%\.config\<app>\debug\update.log`) as well as the terminal.
 - Exit non-zero on any failure. Never prompt when piped (`curl | bash`).
