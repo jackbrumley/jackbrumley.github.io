@@ -133,8 +133,22 @@ Backend commands: `copy_session_log`, `open_session_log`, `open_log_folder`,
 
 ## 6a. Install Page
 
-Each app's install page (`docs/index.html`, served from `main:/docs`) uses
-one shared design, served from `https://brumley.info/shared/v1/`:
+Every app's install page has the same top half, in this order, so a
+visitor sees the app, how to install it and why it exists without
+scrolling:
+
+1. **Hero:** icon, name, a one-sentence tagline, the app's art.
+2. **Install box** (platform tabs, variants, copy button, manual download).
+3. **What it does:** one paragraph, `<p class="features-lead">`, saying what
+   the app is, what it does and why it exists, then 3–6 short cards
+   (`<ul>` of one-line items).
+4. **Screenshots**, when the app has them.
+5. Anything app-specific, in the app's own style (Voquill: press quote,
+   workflows, full capabilities, FAQ, video).
+6. **Footer:** Other apps (shared), links.
+
+The page uses one shared design, served from
+`https://brumley.info/shared/v1/`:
 
 - `app-page.css`: the layout. The page sets only its colours, and every
   tint, wash and glow is mixed from them:
