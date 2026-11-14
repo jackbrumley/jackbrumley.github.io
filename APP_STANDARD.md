@@ -173,6 +173,31 @@ they load the footer (and Voquill the install widget) from the shared files.
 brumley.info counts as first-party: the shared files load no fonts and
 track nothing.
 
+## 6b. README
+
+The README is the install page in Markdown: same order, same words, nothing
+the page doesn't say. Voquill's `README.md` is the reference.
+
+1. **Header**, centred: icon (96 px), name as in `apps.js`, the page's
+   one-sentence tagline.
+2. **At most three badges**, flat, all in the app's `apps.js` colour: latest
+   release (`img.shields.io/github/v/release/…`), platforms, license. No
+   feature or technology badges.
+3. **Link row**: Website · Downloads · one key doc · Report an issue.
+4. **Install**: the one-line command per platform, exactly as the page's
+   `install-config`, then one line pointing at the release files.
+5. **What it does**: the page's `features-lead` paragraph, then its cards as
+   one-line bullets.
+6. **Screenshots**, when the app has them.
+7. At most one short app-specific section (a hardware or permission note).
+8. **Build from source**: the real commands only, in one code block.
+9. **License**: one line.
+10. **Footer**, after a rule: all the apps from `apps.js`, this one in bold
+    and unlinked, the others linked.
+
+Keep it under about 100 lines. Long material (every feature, install
+variants, architecture) lives in `docs/`, linked from the link row.
+
 ## 7. Continuous Integration
 
 `.github/workflows/ci.yml` on every push and pull request to `dev` and `main`,
@@ -189,6 +214,7 @@ carries a comment saying why.
 
 ## 8. Repository Conventions
 
+- **README.md:** the install page's top half in Markdown (section 6b).
 - **AGENTS.md** (with `CLAUDE.md` containing `@AGENTS.md`): a shared core —
   no AI attribution, philosophy (integrity over expediency, fail loudly, no
   shims), the pre-submit checklist below, file size budget, common pitfalls —
