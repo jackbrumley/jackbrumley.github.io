@@ -85,6 +85,12 @@ Voquill: `~/.config/voquill-app`).
   (`git push origin dev:main`), when the maintainer asks. Check with
   `git diff --name-only origin/main origin/dev` first. Anything else waits for
   the next release.
+- **Keep `main` an ancestor of `dev`.** Any commit made on `main` (a site-only
+  update, or an edit in GitHub's web editor such as `FUNDING.yml`) is merged
+  into `dev` straight away. Otherwise promotion can't fast-forward.
+  `release:promote` fetches `main` and refuses before publishing anything if
+  `main` has commits the tag lacks, listing them; it never marks a release
+  latest and then fails to move `main`.
 
 ## 4. Repository Layout (identical in every app)
 
