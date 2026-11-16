@@ -272,6 +272,12 @@ nothing, for months). The rule is therefore:
   - Linux/macOS: `bash -c 'curl --proto '\''=https'\'' --tlsv1.2 -fsSL --retry 3 --connect-timeout 10 "$1/update.sh" | bash -s -- --base-url "$1" --relaunch "$2"' <app>-update <base-url> <relaunch>`
     under `setsid`. The URL and path are positional arguments, never shell
     code. A failed download pipes an empty script, so no started line.
+  - AppImage: remove every environment entry under `$APPDIR` from the
+    launcher's environment (drop a variable left empty; keep `APPIMAGE`).
+    The AppImage runtime points `LD_LIBRARY_PATH` and other search paths
+    into its bundle, and the system `curl` then loads a bundled library and
+    dies ("symbol lookup error"), so the updater never starts (Voquill
+    1.11.4 and earlier).
   - Windows: `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command`
     with TLS 1.2 enabled, then
     `$updater = Invoke-RestMethod -Uri '<base-url>/update.ps1' -ErrorAction Stop`
@@ -292,7 +298,8 @@ nothing, for months). The rule is therefore:
   installed", with **Open Update Log** / **Close**.
 - `--version` (clap's built-in) prints the version; the release install test
   depends on it.
-- Unit tests: PowerShell quoting of the relaunch path; the base URL default
+- Unit tests: PowerShell quoting of the relaunch path; removing `$APPDIR`
+  entries from the environment; the base URL default
   and the https-only override; and that `docs/update.ps1` and
   `docs/update.sh` print the started line before anything else
   (`include_str!` the scripts, so the contract cannot drift).
