@@ -210,6 +210,22 @@ command with a copy button, and a manual-download link to
 - Stop the running app, remove any install of the *other* mode that would
   shadow this one (a user AppImage shadowing a system package), install, then
   refresh desktop/icon/KDE menu caches.
+- **Never stop the process the installer runs under.** The in-app updater
+  runs the installer as a descendant of the app, and an AppImage's runtime is
+  a process with the app's name. `pkill -x <app>` closes it too (RawTap 0.13.0
+  before the fix: the terminal came back to a prompt mid-update). List
+  `pgrep -x <app>`, drop the installer's own ancestors (walk `$$` up through
+  `/proc/<pid>/stat`, reading the parent PID after the last `)`, because the
+  name can contain spaces), and stop the rest.
+- **Windows: ignore PowerShell 7's module folders.** Windows PowerShell
+  started from PowerShell 7, or from a program started there, inherits
+  PowerShell 7's `PSModulePath`, loads its modules, and fails on
+  `Get-FileHash` ("is not recognized"). At the top of `install.ps1`, when
+  `$PSVersionTable.PSEdition` is not `Core`, drop every `PSModulePath` entry
+  matching `\PowerShell\` (Windows PowerShell's own folders are named
+  `WindowsPowerShell`). Older app versions run `install.ps1` directly, so
+  this fix reaches them too (RawTap 0.12.1 and earlier failed to update from
+  a PowerShell 7 terminal).
 - **One root call per install.** Piped through `curl | bash` (and from the
   in-app updater) there is no terminal on stdin, so root goes through
   `pkexec`, which remembers nothing: every separate root command is another
@@ -285,7 +301,9 @@ nothing, for months). The rule is therefore:
     (values single-quoted, embedded quotes doubled). Creation flags
     `CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP`. **Never `DETACHED_PROCESS`:**
     Windows PowerShell started with no console exits at once without running
-    a line.
+    a line. Remove `PSModulePath` from its environment, so Windows PowerShell
+    builds its own (see "Windows: ignore PowerShell 7's module folders"
+    above; an inherited one breaks `Get-FileHash`).
   - `<relaunch>` is the `$APPIMAGE` path when set, otherwise the current
     executable. `<base-url>` is `<site>` (e.g. `https://voquill.org`).
 - `<APP>_UPDATE_BASE_URL` replaces `<base-url>`; it must be `https://` (fail
@@ -343,16 +361,33 @@ so it runs last.
 
 The same contract, adapted to an app that runs inside a terminal, which a
 detached process can't relaunch into:
-- `rawtap update` and the menu's **Update now** leave the TUI, restore the
-  terminal and run the same install command in the foreground of the same
-  terminal, so its output is visible. On Windows the app exits first, so the
-  installer can replace the executable.
-- It runs `<site>/update.sh` / `update.ps1` like the GUI apps, so the
-  procedure stays on the website; no started-line wait is needed, because
+- `rawtap update`, Ctrl+U and the menu's **Update now** leave the TUI,
+  restore the terminal and start the same launcher as the GUI apps, so the
+  procedure stays on the website. No started-line wait is needed, because
   the output is on screen.
-- On success the installer relaunches the app in that terminal. On failure
-  the still-installed version starts with `--update-failed` and shows the
-  standard warning with the update log's path.
+  - Linux: RawTap replaces itself (`exec`) with
+    `bash -c` that downloads `update.sh` into a variable and runs it with
+    `exec bash -c "$updater"`, in the foreground of the same terminal (stdin
+    stays the terminal, so `sudo` can ask for a password).
+  - Windows: PowerShell runs in a console window of its own
+    (`CREATE_NEW_CONSOLE`, so the output is visible) and RawTap exits, so the
+    installer can replace the executable.
+  - If the script can't be downloaded, the launcher says so on screen and in
+    the update log, and starts the installed version with `--update-failed`
+    (Windows: and waits for Enter).
+- The update script runs the installer with `--yes --no-relaunch`
+  (`-NoRelaunch`), prints its finished line, then starts the new version
+  itself: in the terminal on `/dev/tty` on Linux, through `conhost.exe` on
+  Windows so it gets its own window. It writes its own lines to the update
+  log as well as the screen. On failure the installed version starts with
+  `--update-failed` and shows the standard warning with the update log's
+  path. `RAWTAP_NO_RELAUNCH=1` starts neither.
+- `--update` (hidden) runs the launcher without a check; the install test
+  uses it. On Linux it exits with the update script's status; on Windows it
+  exits 0 once the updater's window is started, and the test then waits for
+  the finished line in the update log.
+- The AppImage's `AppRun` is a symlink to the binary, so its environment has
+  no `$APPDIR` search paths to remove.
 - The update check runs in the background at start-up (failures only
   logged); the start screen shows "Update available: A → B" and the menu has
   **Check for Updates** with "Last checked: …".
