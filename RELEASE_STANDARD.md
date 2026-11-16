@@ -106,12 +106,14 @@ scripts/build-linux-release.mjs       npm run release:linux (podman, Ubuntu 22.0
 scripts/package-release.mjs           names build outputs into release-artifacts/
 scripts/verify-release.mjs            npm run release:verify
 scripts/promote-release.mjs           npm run release:promote
+scripts/test-in-app-update.mjs        install test: runs the installed build's real update path
 src-tauri/packaging/linux/Containerfile
 src-tauri/packaging/linux/build-in-container.sh
 docs/RELEASE.md                       this app's copy of the procedure (section 5)
 docs/index.html                       install page with the Linux / Windows / macOS command picker
 docs/install.sh  docs/uninstall.sh    Linux (and macOS hand-off where shipped)
 docs/install.ps1 docs/install-system.ps1 docs/uninstall.ps1    Windows (where shipped)
+docs/update.sh  docs/update.ps1      the in-app updater's procedure (section 7)
 ```
 
 `package.json` scripts: `release:linux`, `release:prepare`, `release:notes`,
@@ -232,34 +234,103 @@ command with a copy button, and a manual-download link to
 
 ## 7. In-App Update Contract
 
+### The website owns the update, not the app
+
+An app can only be fixed by installing a new version of it, so any bug in its
+update code strands every user on that version until they reinstall by hand
+(Voquill 1.11.2 and earlier on Windows: Update Now closed the app and did
+nothing, for months). The rule is therefore:
+
+- **The app does as little as possible:** start one hidden process that
+  downloads `<site>/update.sh` or `<site>/update.ps1` and runs it. Everything
+  else (logging, which installer and options, relaunching on failure,
+  workarounds for old versions) lives in that script, so a fix reaches every
+  installed version on its next update, with no release.
+- **The app never closes into nothing:** the script's first output line is
+  `[<app>-update] started`. The app exits only after it sees that line in the
+  update log. If the process exits or 30 s pass without it, the app stays
+  open, says the updater could not start, and offers the download page.
+- **The release proves it works:** the install test runs the installed
+  build's real update path on every platform (below), so a build with a
+  broken updater never gets published.
+
 ### Backend (`src-tauri/src/app/commands/update.rs`)
 
 - `check_for_updates() -> UpdateCheckResult` (camelCase JSON):
   `{ currentVersion, latestVersion, updateAvailable, releaseUrl, notesUrl }`.
   Reads `releases/latest` from the GitHub API with
   `User-Agent: <app>-update-checker`; compares plain `X.Y.Z` versions.
-- `install_update()`: runs the update in a **detached** process (Linux/macOS:
-  `bash -c` under `setsid`; Windows: `powershell.exe` with
-  `CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP`), writing stdout/stderr to the
-  update log, then exits the app ~600 ms later. Never use `DETACHED_PROCESS`
-  on Windows: PowerShell started with no console exits at once without
-  running a line, so the app closes and nothing updates.
-  - Linux command: `curl --proto '=https' --tlsv1.2 -sSf <site>/install.sh | bash`, plus `-s -- --appimage`
-    when running as an AppImage (`$APPIMAGE` set, or executable under
-    `~/.local/bin`), so an AppImage install stays an AppImage install.
-  - Windows: download `<site>/install.ps1` to `%TEMP%` and run it from the file
-    (so its `exit 1` sets `$LASTEXITCODE` instead of ending the updater).
-  - The script runs with `set -o pipefail`; on non-zero exit it relaunches the
-    still-installed version (`$APPIMAGE` path, else the current executable)
-    with `--update-failed`.
+- `install_update()`: calls `start_updater()`, then exits the app. On error
+  it returns the message and the app stays open.
+- `start_updater()`: empties `<config>/debug/update.log`, starts the launcher
+  below with stdout/stderr appended to it, then polls the log every 250 ms
+  for the started line. Started: return `Ok`. Exited or 30 s without it: kill
+  the process, copy the update log into the session log, return the user
+  message "The updater could not start, so nothing was changed. Download the
+  new version from the release page instead."
+- The launcher, the only update code in the app:
+  - Linux/macOS: `bash -c 'curl --proto '\''=https'\'' --tlsv1.2 -fsSL --retry 3 --connect-timeout 10 "$1/update.sh" | bash -s -- --base-url "$1" --relaunch "$2"' <app>-update <base-url> <relaunch>`
+    under `setsid`. The URL and path are positional arguments, never shell
+    code. A failed download pipes an empty script, so no started line.
+  - Windows: `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command`
+    with TLS 1.2 enabled, then
+    `$updater = Invoke-RestMethod -Uri '<base-url>/update.ps1' -ErrorAction Stop`
+    and `& ([scriptblock]::Create($updater)) -BaseUrl '<base-url>' -Relaunch '<relaunch>'`
+    (values single-quoted, embedded quotes doubled). Creation flags
+    `CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP`. **Never `DETACHED_PROCESS`:**
+    Windows PowerShell started with no console exits at once without running
+    a line.
+  - `<relaunch>` is the `$APPIMAGE` path when set, otherwise the current
+    executable. `<base-url>` is `<site>` (e.g. `https://voquill.org`).
+- `<APP>_UPDATE_BASE_URL` replaces `<base-url>`; it must be `https://` (fail
+  otherwise). Only the install test uses it.
+- `--update` (hidden CLI flag): runs `start_updater()` without showing the
+  window and exits 0 once the script started, 1 if it never did. The install
+  test drives the real update path through it.
 - `--update-failed` (hidden CLI flag, parsed with `clap`) shows a warning
   dialog: "<Product> could not install the update, so this version is still
   installed", with **Open Update Log** / **Close**.
 - `--version` (clap's built-in) prints the version; the release install test
   depends on it.
-- Unit tests: shell quoting of relaunch paths (bash and PowerShell), and that
-  the update script starts with `set -o pipefail` and contains
-  `--update-failed`.
+- Unit tests: PowerShell quoting of the relaunch path; the base URL default
+  and the https-only override; and that `docs/update.ps1` and
+  `docs/update.sh` print the started line before anything else
+  (`include_str!` the scripts, so the contract cannot drift).
+
+### Update scripts (`docs/update.sh`, `docs/update.ps1`)
+
+Every shipped version runs the current copy, so their interface is a
+contract: document it at the top of each script and change it only
+compatibly (new optional parameters are fine; renaming or removing one is
+not).
+- Parameters: `--base-url` / `-BaseUrl` (where the script came from, no
+  trailing slash) and `--relaunch` / `-Relaunch`. Ignore unknown arguments.
+- First line: `[<app>-update] started`, before anything that can fail.
+- Download `<base-url>/install.sh` or `install.ps1` to a temporary file and
+  run it from the file (PowerShell: its `exit 1` then sets
+  `$global:LASTEXITCODE`; reset that to 0 first and read it with `$global:`,
+  because the script block has its own scope). Pass `--yes` on Linux/macOS
+  and `--appimage` when `$APPIMAGE` is set or `<relaunch>` is under
+  `~/.local/bin`.
+- Last line: `[<app>-update] finished: updated` (exit 0) or
+  `[<app>-update] finished: failed` (exit 1). On failure, wait up to 15 s for
+  the old app to exit (`Wait-Process`, or a `pgrep -x` loop) so the single
+  instance guard does not hand the relaunch to the exiting copy, then start
+  `<relaunch> --update-failed`.
+- Keep `install.sh` / `install.ps1` working for the old way too: versions
+  from before this pattern download and run them directly.
+
+### Install test
+
+The last step of the release workflow's install test, on every platform:
+`node scripts/test-in-app-update.mjs <installed binary>` with
+`<APP>_UPDATE_BASE_URL=https://raw.githubusercontent.com/<repo>/<tag>/docs`
+(the tag's own scripts) and `<APP>_NO_RELAUNCH=1` (Linux under
+`dbus-run-session -- xvfb-run -a`, AppImage with
+`APPIMAGE_EXTRACT_AND_RUN=1`). It runs `<binary> --update`, requires exit 0
+and the started line, then waits up to 10 minutes for
+`finished: updated`. It updates the build to the latest published release,
+so it runs last.
 
 ### Terminal apps (RawTap)
 
@@ -269,6 +340,9 @@ detached process can't relaunch into:
   terminal and run the same install command in the foreground of the same
   terminal, so its output is visible. On Windows the app exits first, so the
   installer can replace the executable.
+- It runs `<site>/update.sh` / `update.ps1` like the GUI apps, so the
+  procedure stays on the website; no started-line wait is needed, because
+  the output is on screen.
 - On success the installer relaunches the app in that terminal. On failure
   the still-installed version starts with `--update-failed` and shows the
   standard warning with the update log's path.
@@ -283,14 +357,16 @@ detached process can't relaunch into:
   that finds nothing shows "You are already on the latest version."
 - When an update is available, the modal shows current → latest version with
   **Update Now**, **View Release Notes** (opens `releaseUrl`) and **Later**.
-- **Update Now** shows "Starting update… <Product> will restart shortly." and
-  calls `install_update`. If it fails to start, show the error and re-enable
-  the button.
+- **Update Now** shows "Starting the updater. <Product> will close, install
+  the update and reopen." and calls `install_update`. If it returns an error,
+  the modal shows the message in red and replaces **Update Now** and
+  **View Release Notes** with **Open Download Page** (opens `releaseUrl`).
 
 ## 8. Agent Checklist
 
 - [ ] Version via `npm run release:prepare`; tag `vX.Y.Z`; no suffix.
-- [ ] Workflow green: build, verify and install test on every platform.
+- [ ] Workflow green: build, verify and install test (including the in-app
+      update step) on every platform.
 - [ ] Notes from `release:notes`; no `TODO`; Downloads block untouched.
 - [ ] Assets come only from the workflow or `package-release.mjs`.
 - [ ] `release:promote` only when the maintainer asks.
@@ -412,5 +488,13 @@ behaviour, implemented as in Voquill's `src-tauri/src/app/tray/`.
   (`tauri_plugin_autostart::Builder::new().app_name("<app>").arg("--start-hidden")`).
   If no tray is available, the window is shown anyway so the app stays
   reachable.
+- **State before windows.** Mark every window in `tauri.conf.json`
+  `"create": false` and build them in the setup hook right after
+  `app.manage(...)`
+  (`WebviewWindowBuilder::from_config(app.handle(), &config)?.build()?` for
+  each `app.config().app.windows`). Tauri otherwise builds config windows
+  *before* the setup hook, and a page that loads first calls commands whose
+  state is not managed yet ("state not managed for field `state` on command
+  `get_config`", seen in Voquill 1.11.2 at start-up).
 - Unit tests: menu order (Open first, Quit last), menu id round-trip, and
   `launch_shows_window` for plain, `--start-hidden` and unparsable arguments.
