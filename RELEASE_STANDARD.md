@@ -224,6 +224,11 @@ command with a copy button, and a manual-download link to
 - Exit non-zero on any failure. Never prompt when piped (`curl | bash`).
 - Relaunch the app at the end unless `--no-relaunch` or `<APP>_NO_RELAUNCH=1`.
 - Re-running is always safe: it is how updates work.
+- **Windows: remove only this app.** When `install.ps1` or `uninstall.ps1`
+  looks for installed copies in the registry's `Uninstall` keys, match the
+  app's own exact `DisplayName` (`-eq "<productName>"`), never a wildcard and
+  never the publisher alone: every app shares the publisher "Jack Brumley",
+  and a publisher match uninstalls the other apps too.
 
 ## 7. In-App Update Contract
 
@@ -235,8 +240,10 @@ command with a copy button, and a manual-download link to
   `User-Agent: <app>-update-checker`; compares plain `X.Y.Z` versions.
 - `install_update()`: runs the update in a **detached** process (Linux/macOS:
   `bash -c` under `setsid`; Windows: `powershell.exe` with
-  `DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP`), writing stdout/stderr to the
-  update log, then exits the app ~600 ms later.
+  `CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP`), writing stdout/stderr to the
+  update log, then exits the app ~600 ms later. Never use `DETACHED_PROCESS`
+  on Windows: PowerShell started with no console exits at once without
+  running a line, so the app closes and nothing updates.
   - Linux command: `curl --proto '=https' --tlsv1.2 -sSf <site>/install.sh | bash`, plus `-s -- --appimage`
     when running as an AppImage (`$APPIMAGE` set, or executable under
     `~/.local/bin`), so an AppImage install stays an AppImage install.
