@@ -331,6 +331,11 @@ not).
 - Parameters: `--base-url` / `-BaseUrl` (where the script came from, no
   trailing slash) and `--relaunch` / `-Relaunch`. Ignore unknown arguments.
 - First line: `[<app>-update] started`, before anything that can fail.
+- Linux/macOS: before installing, wait up to 15 s for the app that started
+  the update to exit (walk `$PPID` up with `ps -o comm=` / `ps -o ppid=` to
+  the first process named `<app>`, then poll `kill -0`). The app is the
+  script's ancestor, so the installer will not stop it, and installing over
+  a running app can fail.
 - Download `<base-url>/install.sh` or `install.ps1` to a temporary file and
   run it from the file (PowerShell: its `exit 1` then sets
   `$global:LASTEXITCODE`; reset that to 0 first and read it with `$global:`,
