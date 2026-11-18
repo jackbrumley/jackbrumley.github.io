@@ -179,6 +179,14 @@ visitor's OS), variant buttons, a hint ("Open **Terminal** and run:"), the
 command with a copy button, and a manual-download link to
 `releases/latest`.
 
+Older Windows 10 PCs fail on the Windows commands before any script runs:
+their Windows PowerShell offers only TLS 1.0 by default, and GitHub refuses it
+("Could not create SSL/TLS secure channel"). The shared install widget
+(`shared/v1/install-widget.js`) adds a line under every Windows `irm` command
+whose button copies it with TLS 1.2 turned on first
+(`[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; irm … | iex`).
+Pages need no change for it.
+
 ### `install.sh` options (same names in every app)
 
 | Option | Meaning |
@@ -226,6 +234,14 @@ command with a copy button, and a manual-download link to
   `WindowsPowerShell`). Older app versions run `install.ps1` directly, so
   this fix reaches them too (RawTap 0.12.1 and earlier failed to update from
   a PowerShell 7 terminal).
+- **Windows: turn on TLS 1.2 before the first download.** Every `.ps1` the
+  site serves (`install.ps1`, `install-system.ps1`, `uninstall.ps1` and any
+  other wrapper) starts with
+  `[Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12`.
+  The setting lasts only for the PowerShell session, so the copy a script
+  starts as administrator (UAC) would otherwise fail on its own downloads on
+  older Windows 10 PCs, even after the page's older-Windows command (ComTap
+  1.3.0 and earlier).
 - **One root call per install.** Piped through `curl | bash` (and from the
   in-app updater) there is no terminal on stdin, so root goes through
   `pkexec`, which remembers nothing: every separate root command is another

@@ -10,6 +10,12 @@
 //
 // Platforms appear in the page's tabs (data-platform); the first variant of
 // each platform is its default.
+//
+// A Windows command that starts with `irm ` also gets a line for older
+// Windows 10 PCs, whose Windows PowerShell offers only TLS 1.0 by default:
+// GitHub refuses it ("Could not create SSL/TLS secure channel") before the
+// script can turn TLS 1.2 on. Its button copies the command with TLS 1.2
+// turned on first.
 (function () {
   'use strict';
 
@@ -33,6 +39,15 @@
   var variants = document.getElementById('install-variants');
   var hint = document.getElementById('install-hint');
   var note = document.getElementById('install-note');
+
+  var TLS12 = '[Net.ServicePointManager]::SecurityProtocol = ' +
+    '[Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12; ';
+  var older = document.createElement('p');
+  older.className = 'install-older';
+  older.innerHTML = 'Older Windows 10 and "Could not create SSL/TLS secure channel"? ' +
+    '<button type="button" class="install-older-btn">Copy this command for older Windows</button>';
+  variants.parentNode.insertBefore(older, variants.nextSibling);
+  var olderBtn = older.querySelector('button');
 
   // The visitor's platform, if the page offers it; otherwise its first one.
   function detectPlatform() {
@@ -68,6 +83,8 @@
     var v = options[variant];
 
     codeBlock.textContent = v.command;
+    var oldWindows = platform === 'windows' && v.command.indexOf('irm ') === 0;
+    older.style.display = oldWindows ? '' : 'none';
     hint.innerHTML = v.hint;
     // A page without a note line (#install-note) just has no notes.
     if (note) {
@@ -109,25 +126,40 @@
     }, 1500);
   }
 
-  function fallbackCopy(text) {
+  function olderCopied() {
+    olderBtn.textContent = 'Copied';
+    olderBtn.classList.add('copied');
+    setTimeout(function () {
+      olderBtn.textContent = 'Copy this command for older Windows';
+      olderBtn.classList.remove('copied');
+    }, 1500);
+  }
+
+  function copyText(text, done) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text, done); });
+    } else {
+      fallbackCopy(text, done);
+    }
+  }
+
+  function fallbackCopy(text, done) {
     var ta = document.createElement('textarea');
     ta.value = text;
     ta.style.position = 'fixed';
     ta.style.opacity = '0';
     document.body.appendChild(ta);
     ta.select();
-    try { document.execCommand('copy'); copied(); } catch (e) { /* ignore */ }
+    try { document.execCommand('copy'); done(); } catch (e) { /* ignore */ }
     document.body.removeChild(ta);
   }
 
   copyBtn.innerHTML = COPY_ICON;
   copyBtn.addEventListener('click', function () {
-    var text = codeBlock.textContent;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(copied, function () { fallbackCopy(text); });
-    } else {
-      fallbackCopy(text);
-    }
+    copyText(codeBlock.textContent, copied);
+  });
+  olderBtn.addEventListener('click', function () {
+    copyText(TLS12 + codeBlock.textContent, olderCopied);
   });
 
   window.addEventListener('resize', updateIndicator);
