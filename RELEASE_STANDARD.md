@@ -18,6 +18,7 @@ copied to the others.
 | Yambuck | `yambuck/yambuck` | `https://yambuck.com` | `com.yambuck.yambuck` | Linux |
 | RawTap | `jackbrumley/rawtap` | `https://brumley.info/rawtap` | `info.brumley.rawtap` | Linux, Windows |
 | ComTap | `jackbrumley/comtap` | `https://brumley.info/comtap` | `info.brumley.comtap` | Linux, Windows |
+| Lookstow | `jackbrumley/lookstow` | `https://brumley.info/lookstow` | `info.brumley.lookstow` | Linux, Windows |
 
 `<app>` below is the lowercase binary name (`voquill`, `rusty-g6`,
 `somedrive`, `yambuck`, `rawtap`); `<APP>` is its environment-variable prefix

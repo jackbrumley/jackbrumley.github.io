@@ -10,5 +10,6 @@ window.BRUMLEY_APPS = [
   { id: 'yambuck', name: 'Yambuck', url: 'https://yambuck.com/', icon: 'yambuck.svg', color: '#1f8f9c', color2: '#5ce0d2' },
   { id: 'rawtap', name: 'RawTap', url: 'https://brumley.info/rawtap/', icon: 'rawtap.png', color: '#d97706', color2: '#10b981' },
   { id: 'comtap', name: 'ComTap', url: 'https://brumley.info/comtap/', icon: 'comtap.png', color: '#0284c7', color2: '#8b5cf6' },
-  { id: 'bmuster', name: 'BMuster', url: 'https://bmuster.com/', icon: 'bmuster.svg', color: '#65a30d', color2: '#34d399' }
+  { id: 'bmuster', name: 'BMuster', url: 'https://bmuster.com/', icon: 'bmuster.svg', color: '#65a30d', color2: '#34d399' },
+  { id: 'lookstow', name: 'Lookstow', url: 'https://brumley.info/lookstow/', icon: 'lookstow.svg', color: '#e11d48', color2: '#f59e0b' }
 ];
